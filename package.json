@@ -1,0 +1,19 @@
+{
+  "name": "saas-vulnerability-scorer",
+  "version": "2.0.0",
+  "type": "module",
+  "bin": {
+    "saas-scorer": "./cli.js"
+  },
+  "scripts": {
+    "score": "node cli.js",
+    "score:url": "node cli.js url",
+    "score:stack": "node cli.js stack",
+    "score:company": "node cli.js company"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "cheerio": "^1.2.0",
+    "node-fetch": "^3.3.2"
+  }
+}
