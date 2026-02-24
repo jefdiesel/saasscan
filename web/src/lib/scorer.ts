@@ -4,6 +4,22 @@ import { ProductData } from "./scraper";
 const client = new Anthropic();
 const MODEL = "claude-opus-4-6";
 
+export interface Alternative {
+  name: string;
+  type: "ai_native" | "open_source" | "cheaper_saas" | "build_internal";
+  url?: string;
+  estimated_savings: string;
+  migration_difficulty: "easy" | "medium" | "hard";
+  description: string;
+}
+
+export interface LockInStrategy {
+  lock_in_type: string;
+  severity: "low" | "medium" | "high";
+  escape_tactic: string;
+  timeline: string;
+}
+
 export interface VulnerabilityScore {
   product_name: string;
   core_function: string;
@@ -14,10 +30,15 @@ export interface VulnerabilityScore {
   negotiation_leverage: string;
   comparable_at_risk: string[];
   estimated_annual_cost: number | null;
+  // New fields
+  alternatives: Alternative[];
+  vendor_lock_in: LockInStrategy[];
+  escape_plan: string;
+  negotiation_script: string;
 }
 
 export async function scoreProduct(productData: ProductData): Promise<VulnerabilityScore> {
-  const prompt = `You are an analyst scoring SaaS products on their vulnerability to AI replacement.
+  const prompt = `You are an analyst helping procurement teams reduce SaaS costs and vendor dependency.
 
 Product URL: ${productData.url}
 Title: ${productData.title}
@@ -25,22 +46,50 @@ Description: ${productData.metaDesc}
 Headlines: ${productData.h1s} | ${productData.h2s}
 Page content (excerpt): ${productData.bodyText}
 
-Analyze this product and return ONLY valid JSON in this exact format:
+Analyze this product and return ONLY valid JSON:
 {
   "product_name": "string",
-  "core_function": "one sentence description of what this product does",
-  "vulnerability_score": <integer 1-10, where 10 = trivially replaceable by AI today>,
-  "replacement_timeline": "string, e.g. '6-18 months' or 'already happening'",
-  "replacement_mechanism": "string, how specifically an AI agent or custom build replaces this",
-  "moat_factors": ["array", "of", "things", "that", "slow", "replacement"],
-  "negotiation_leverage": "string, what a procurement team can say to get a discount based on AI threat",
-  "comparable_at_risk": ["other SaaS products in same category also at risk"],
-  "estimated_annual_cost": <integer, rough estimate of annual cost in USD for mid-market company, or null if unknown>
-}`;
+  "core_function": "one sentence description",
+  "vulnerability_score": <1-10, where 10 = trivially replaceable by AI today>,
+  "replacement_timeline": "e.g. '6-18 months' or 'already happening'",
+  "replacement_mechanism": "how AI/automation replaces this specifically",
+  "moat_factors": ["what protects this vendor"],
+  "negotiation_leverage": "one-liner for procurement to use",
+  "comparable_at_risk": ["similar products also at risk"],
+  "estimated_annual_cost": <integer USD for mid-market, or null>,
+
+  "alternatives": [
+    {
+      "name": "Alternative name",
+      "type": "ai_native|open_source|cheaper_saas|build_internal",
+      "url": "https://alternative.com",
+      "estimated_savings": "40-60%",
+      "migration_difficulty": "easy|medium|hard",
+      "description": "why this is a viable alternative"
+    }
+  ],
+
+  "vendor_lock_in": [
+    {
+      "lock_in_type": "e.g. Data format, API dependencies, Workflow integrations",
+      "severity": "low|medium|high",
+      "escape_tactic": "specific action to reduce this lock-in",
+      "timeline": "how long to implement the escape"
+    }
+  ],
+
+  "escape_plan": "step-by-step plan to migrate away from this vendor within 6 months",
+
+  "negotiation_script": "2-3 sentence script a procurement manager can use in renewal negotiations, citing AI alternatives and migration readiness"
+}
+
+Provide 3-5 alternatives (prioritize AI-native and open source).
+Identify 2-4 vendor lock-in factors with specific escape tactics.
+The escape plan should be actionable and specific.`;
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 1024,
+    max_tokens: 2048,
     messages: [{ role: "user", content: prompt }],
   });
 
